@@ -23,6 +23,12 @@ const PARTICLE_EVENT_NAME = "environmentData";
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
+// Variables to store the latest temperature and humidity
+let latestEnvironmentData = {
+  temperature: null,
+  humidity: null,
+};
+
 // Listen to Particle Event Stream
 const PARTICLE_EVENT_STREAM_URL = `https://api.particle.io/v1/devices/events/${PARTICLE_EVENT_NAME}?access_token=${PARTICLE_ACCESS_TOKEN}`;
 
@@ -43,6 +49,12 @@ axios
         console.log("Temperature:", parsedData.temperature);
         console.log("Humidity:", parsedData.humidity);
 
+        // Update latest environment data
+        latestEnvironmentData = {
+          temperature: parsedData.temperature,
+          humidity: parsedData.humidity,
+        };
+
         // Broadcast the data to all clients via Socket.IO
         io.emit("update", {
           temperature: parsedData.temperature,
@@ -59,6 +71,15 @@ axios
 // Frontend endpoint
 app.get("/", (req, res) => {
   res.send("Particle Web App Backend");
+});
+
+// New /environment endpoint
+app.get("/environment", (req, res) => {
+  if (latestEnvironmentData.temperature !== null && latestEnvironmentData.humidity !== null) {
+    res.json(latestEnvironmentData);
+  } else {
+    res.status(503).json({ error: "Environment data not yet available" });
+  }
 });
 
 // Start the server
