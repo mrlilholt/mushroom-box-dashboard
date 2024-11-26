@@ -33,7 +33,7 @@
         <button onclick="controlHumidifier('OFF')">Turn Humidifier OFF</button>
     </div>
     <script>
-        const socket = io("https://your-app.onrender.com");
+        const socket = io("https://mushroom-box-dashboard.onrender.com/");
 
         const tempChartCtx = document.getElementById("tempChart").getContext("2d");
         const tempChart = new Chart(tempChartCtx, {
