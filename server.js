@@ -47,10 +47,10 @@ axios
         try {
           // Parse the raw "data" string
           const payload = JSON.parse(eventData.replace(/^data: /, ""));
+          console.log("Payload Data:", payload);
 
           // Parse the "data" field within the payload
           const parsedData = JSON.parse(payload.data);
-
           console.log("Parsed Event Data:", parsedData);
 
           // Ensure temperature and humidity exist in the payload
