@@ -1,3 +1,13 @@
+// Add CSP header to allow 'unsafe-eval'
+app.use((req, res, next) => {
+    res.setHeader(
+        "Content-Security-Policy",
+        "script-src 'self' 'unsafe-eval';"
+    );
+    next();
+});
+
+
 const express = require("express");
 const axios = require("axios");
 const bodyParser = require("body-parser");
