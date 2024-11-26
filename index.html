@@ -3,32 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Environment Dashboard</title>
+  <title>Mushroom Box Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
-      padding: 0;
+      text-align: center;
     }
+
     #warning {
       color: red;
+      font-size: 1.5em;
       font-weight: bold;
+      margin: 10px 0;
       display: none;
+    }
+
+    canvas {
+      margin: 20px auto;
+      display: block;
+      max-width: 600px;
     }
   </style>
 </head>
 <body>
-  <h1>Environment Dashboard</h1>
-  <p id="warning"></p>
-  <canvas id="temperatureChart" width="400" height="200"></canvas>
+  <h1>Mushroom Box Dashboard</h1>
+  <p id="warning">⚠️ Temperature Alert!</p>
+  <canvas id="temperatureChart" width="600" height="400"></canvas>
+  <canvas id="humidityChart" width="600" height="400"></canvas>
 
   <script>
-    const socket = io();
+    const socket = io("https://mushroom-box-dashboard.onrender.com"); // Replace with your Render server URL
 
+    // Chart.js configuration
     const labels = [];
     const temperatureData = [];
+    const humidityData = [];
+
     const temperatureChart = new Chart(document.getElementById('temperatureChart'), {
       type: 'line',
       data: {
@@ -36,18 +49,65 @@
         datasets: [{
           label: 'Temperature (°F)',
           data: temperatureData,
-          borderWidth: 1
+          borderColor: 'rgba(255, 99, 132, 1)',
+          backgroundColor: 'rgba(255, 99, 132, 0.2)',
+          borderWidth: 1,
+          fill: true,
         }]
       },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Real-Time Temperature'
+          }
+        },
+        scales: {
+          x: { title: { display: true, text: 'Timestamp' } },
+          y: { title: { display: true, text: 'Temperature (°F)' } },
+        }
+      }
     });
 
+    const humidityChart = new Chart(document.getElementById('humidityChart'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Humidity (%)',
+          data: humidityData,
+          borderColor: 'rgba(54, 162, 235, 1)',
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          borderWidth: 1,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Real-Time Humidity'
+          }
+        },
+        scales: {
+          x: { title: { display: true, text: 'Timestamp' } },
+          y: { title: { display: true, text: 'Humidity (%)' } },
+        }
+      }
+    });
+
+    // Real-time updates with Socket.IO
     const warningElement = document.getElementById('warning');
 
     socket.on('update', (data) => {
       labels.push(data.timestamp);
       temperatureData.push(data.temperature);
+      humidityData.push(data.humidity);
 
       temperatureChart.update();
+      humidityChart.update();
     });
 
     socket.on('warning', (data) => {
