@@ -72,7 +72,7 @@
         });
 
         async function controlHumidifier(state) {
-            await fetch("https://your-app.onrender.com/humidifier", {
+            await fetch("https://mushroom-box-dashboard.onrender.com/humidifier", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ state }),
