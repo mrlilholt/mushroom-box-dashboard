@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grow Box Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .controls {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Grow Box Dashboard</h1>
+    <div>
+        <h2>Current Status</h2>
+        <p>Temperature: <span id="current-temp">--</span> °F</p>
+        <p>Humidity: <span id="current-humidity">--</span> %</p>
+    </div>
+    <div>
+        <h2>Temperature Over Time</h2>
+        <canvas id="tempChart" width="400" height="200"></canvas>
+    </div>
+    <div class="controls">
+        <button onclick="controlHumidifier('ON')">Turn Humidifier ON</button>
+        <button onclick="controlHumidifier('OFF')">Turn Humidifier OFF</button>
+    </div>
+    <script>
+        const socket = io("https://your-app.onrender.com");
+
+        const tempChartCtx = document.getElementById("tempChart").getContext("2d");
+        const tempChart = new Chart(tempChartCtx, {
+            type: "line",
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: "Temperature (°F)",
+                        data: [],
+                        borderColor: "rgba(75, 192, 192, 1)",
+                        borderWidth: 2,
+                        fill: false,
+                    },
+                ],
+            },
+        });
+
+        socket.on("update", (data) => {
+            console.log("Received update:", data);
+
+            // Update current values
+            document.getElementById("current-temp").textContent = data.temperature.toFixed(2);
+            document.getElementById("current-humidity").textContent = data.humidity.toFixed(2);
+
+            // Update graph
+            tempChart.data.labels.push(data.timestamp);
+            tempChart.data.datasets[0].data.push(data.temperature);
+
+            if (tempChart.data.labels.length > 20) {
+                tempChart.data.labels.shift();
+                tempChart.data.datasets[0].data.shift();
+            }
+
+            tempChart.update();
+        });
+
+        async function controlHumidifier(state) {
+            await fetch("https://your-app.onrender.com/humidifier", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ state }),
+            });
+            alert(`Humidifier turned ${state}`);
+        }
+    </script>
+</body>
+</html>
