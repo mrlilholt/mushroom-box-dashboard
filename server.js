@@ -40,27 +40,40 @@ axios
     response.data.on("data", (chunk) => {
       const eventData = chunk.toString().trim();
 
-      if (eventData.startsWith("event")) {
-        console.log("Received event: ", eventData);
-      } else if (eventData.startsWith("data")) {
-        const payload = JSON.parse(eventData.replace(/^data: /, ""));
-        const parsedData = JSON.parse(payload.data);
+      // Debug log to see the raw data
+      console.log("Raw Event Data:", eventData);
 
-        console.log("Temperature:", parsedData.temperature);
-        console.log("Humidity:", parsedData.humidity);
+      if (eventData.startsWith("data")) {
+        try {
+          // Parse the raw "data" string
+          const payload = JSON.parse(eventData.replace(/^data: /, ""));
 
-        // Update latest environment data
-        latestEnvironmentData = {
-          temperature: parsedData.temperature,
-          humidity: parsedData.humidity,
-        };
+          // Parse the "data" field within the payload
+          const parsedData = JSON.parse(payload.data);
 
-        // Broadcast the data to all clients via Socket.IO
-        io.emit("update", {
-          temperature: parsedData.temperature,
-          humidity: parsedData.humidity,
-          timestamp: new Date().toLocaleTimeString(),
-        });
+          console.log("Parsed Event Data:", parsedData);
+
+          // Ensure temperature and humidity exist in the payload
+          if (parsedData.temperature !== undefined && parsedData.humidity !== undefined) {
+            // Update latest environment data
+            latestEnvironmentData = {
+              temperature: parsedData.temperature,
+              humidity: parsedData.humidity,
+            };
+            console.log("Updated Environment Data:", latestEnvironmentData);
+
+            // Broadcast the data to all clients via Socket.IO
+            io.emit("update", {
+              temperature: parsedData.temperature,
+              humidity: parsedData.humidity,
+              timestamp: new Date().toLocaleTimeString(),
+            });
+          } else {
+            console.error("Invalid data structure:", parsedData);
+          }
+        } catch (error) {
+          console.error("Error parsing event data:", error);
+        }
       }
     });
   })
