@@ -2,6 +2,7 @@ const express = require("express");
 const axios = require("axios");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+app.use(cors({ origin: "*" })); // Allow requests from all origins
 const { Server } = require("socket.io");
 const http = require("http");
 
