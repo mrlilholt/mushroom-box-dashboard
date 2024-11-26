@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grow Box Dashboard</title>
-    <!--<script src="https://cdn.jsdelivr.net/npm/chart.js@3"></script>-->
-    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <title>The Mushroom Box Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             margin: 20px;
+        }
+        .status {
+            font-size: 1.5rem;
+            margin: 20px 0;
         }
         .controls {
             margin-top: 20px;
@@ -18,95 +20,67 @@
     </style>
 </head>
 <body>
-    <h1>Grow Box Dashboard</h1>
-    <div>
-        <h2>Current Status</h2>
+    <h1>The Mushroom Box Dashboard</h1>
+
+    <div class="status">
         <p>Temperature: <span id="current-temp">--</span> °F</p>
         <p>Humidity: <span id="current-humidity">--</span> %</p>
     </div>
-    <div>
-        <h2>Temperature Over Time</h2>
-        <canvas id="tempChart" width="400" height="200"></canvas>
-    </div>
+
     <div class="controls">
         <button onclick="controlHumidifier('ON')">Turn Humidifier ON</button>
         <button onclick="controlHumidifier('OFF')">Turn Humidifier OFF</button>
     </div>
+
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            console.log("DOM fully loaded");
+        const API_URL = "https://mushroom-box-dashboard.onrender.com";
 
-            // Debugging the tempChart canvas element
-            const tempChartElement = document.getElementById("tempChart");
-            console.log("tempChart element:", tempChartElement);
-
-            if (!tempChartElement) {
-                console.error("Canvas element with id 'tempChart' is missing!");
-                return; // Stop execution if canvas is missing
-            }
-
-            const tempChartCtx = tempChartElement.getContext("2d");
-            const tempChart = new Chart(tempChartCtx, {
-                type: "line",
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: "Temperature (°F)",
-                            data: [],
-                            borderColor: "rgba(75, 192, 192, 1)",
-                            borderWidth: 2,
-                            fill: false,
-                        },
-                    ],
-                },
-                options: {
-                    plugins: {
-            // Disable specific plugins if they are causing issues
-                    legend: false,
-                    tooltip: false,
-        },
-    },
-            });
-
-            const socket = io("https://mushroom-box-dashboard.onrender.com");
-
-            socket.on("connect", () => {
-                console.log("Connected to backend WebSocket");
-            });
-
-            socket.on("update", (data) => {
-                console.log("Received update:", data);
-
-                // Update current temperature and humidity
-                const tempElement = document.getElementById("current-temp");
-                const humidityElement = document.getElementById("current-humidity");
-
-                if (tempElement) tempElement.textContent = data.temperature.toFixed(2);
-                if (humidityElement) humidityElement.textContent = data.humidity.toFixed(2);
-
-                // Update chart data
-                tempChart.data.labels.push(data.timestamp);
-                tempChart.data.datasets[0].data.push(data.temperature);
-
-                // Limit chart to the last 20 points
-                if (tempChart.data.labels.length > 20) {
-                    tempChart.data.labels.shift();
-                    tempChart.data.datasets[0].data.shift();
+        // Function to fetch current temperature and humidity from the backend
+        async function fetchEnvironmentData() {
+            try {
+                const response = await fetch(`${API_URL}/environment`);
+                if (!response.ok) {
+                    console.error("Failed to fetch environment data");
+                    return;
                 }
 
-                tempChart.update();
-            });
+                const data = await response.json();
+                console.log("Environment data:", data);
 
-            async function controlHumidifier(state) {
-                await fetch("https://mushroom-box-dashboard.onrender.com/humidifier", {
+                // Update DOM elements
+                document.getElementById("current-temp").textContent = data.temperature.toFixed(2);
+                document.getElementById("current-humidity").textContent = data.humidity.toFixed(2);
+            } catch (error) {
+                console.error("Error fetching environment data:", error);
+            }
+        }
+
+        // Function to control the humidifier
+        async function controlHumidifier(state) {
+            try {
+                const response = await fetch(`${API_URL}/humidifier`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ state }),
                 });
+
+                if (!response.ok) {
+                    console.error("Failed to control humidifier");
+                    alert("Failed to control humidifier. Please try again.");
+                    return;
+                }
+
                 alert(`Humidifier turned ${state}`);
+            } catch (error) {
+                console.error("Error controlling humidifier:", error);
             }
-        });
+        }
+
+        // Periodically fetch data every 5 seconds
+        setInterval(fetchEnvironmentData, 5000);
+
+        // Fetch data immediately on page load
+        fetchEnvironmentData();
     </script>
 </body>
 </html>
