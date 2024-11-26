@@ -9,13 +9,13 @@ const { Server } = require("socket.io");
 const http = require("http");
 
 // Add CSP header to allow 'unsafe-eval'
-app.use((req, res, next) => {
-    res.setHeader(
-        "Content-Security-Policy",
-        "script-src 'self' 'unsafe-eval';"
-    );
-    next();
-});
+//app.use((req, res, next) => {
+//    res.setHeader(
+//        "Content-Security-Policy",
+//        "script-src 'self' 'unsafe-eval';"
+//    );
+//    next();
+//});
 
 // Use CORS before defining any routes or middleware
 app.use(cors({ origin: "*" })); // Allow requests from all origins
