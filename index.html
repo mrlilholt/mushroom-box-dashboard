@@ -1,95 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Mushrom Box Dashboard</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 20px;
-        }
-        .status {
-            font-size: 1.5rem;
-            margin: 20px 0;
-        }
-        .controls {
-            margin-top: 20px;
-        }
-        .error {
-            color: red;
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Environment Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+    }
+    #warning {
+      color: red;
+      font-weight: bold;
+      display: none;
+    }
+  </style>
 </head>
 <body>
-    <h1>The Mushroom Box Dashboard</h1>
+  <h1>Environment Dashboard</h1>
+  <p id="warning"></p>
+  <canvas id="temperatureChart" width="400" height="200"></canvas>
 
-    <div class="status">
-        <p>Temperature: <span id="current-temp">--</span> °F</p>
-        <p>Humidity: <span id="current-humidity">--</span> %</p>
-        <p id="error-message" class="error"></p>
-    </div>
+  <script>
+    const socket = io();
 
-    <div class="controls">
-        <button onclick="controlHumidifier('ON')">Turn Humidifier ON</button>
-        <button onclick="controlHumidifier('OFF')">Turn Humidifier OFF</button>
-    </div>
+    const labels = [];
+    const temperatureData = [];
+    const temperatureChart = new Chart(document.getElementById('temperatureChart'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Temperature (°F)',
+          data: temperatureData,
+          borderWidth: 1
+        }]
+      },
+    });
 
-    <script>
-        const API_URL = "https://mushroom-box-dashboard.onrender.com";
+    const warningElement = document.getElementById('warning');
 
-        // Function to fetch current temperature and humidity
-        async function fetchEnvironmentData() {
-            try {
-                const response = await fetch(`${API_URL}/environment`);
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    document.getElementById("error-message").textContent = `Error fetching environment data: ${response.status} (${response.statusText})`;
-                    console.error("Error response:", errorText);
-                    return;
-                }
+    socket.on('update', (data) => {
+      labels.push(data.timestamp);
+      temperatureData.push(data.temperature);
 
-                const data = await response.json();
-                console.log("Environment data:", data);
+      temperatureChart.update();
+    });
 
-                // Update DOM elements
-                document.getElementById("current-temp").textContent = data.temperature.toFixed(2);
-                document.getElementById("current-humidity").textContent = data.humidity.toFixed(2);
-                document.getElementById("error-message").textContent = ""; // Clear error
-            } catch (error) {
-                console.error("Error fetching environment data:", error);
-                document.getElementById("error-message").textContent = "Unable to fetch environment data.";
-            }
-        }
-
-        // Function to control the humidifier
-        async function controlHumidifier(state) {
-            try {
-                const response = await fetch(`${API_URL}/humidifier`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ state }),
-                });
-
-                if (!response.ok) {
-                    alert("Failed to control humidifier. Please try again.");
-                    return;
-                }
-
-                alert(`Humidifier turned ${state}`);
-            } catch (error) {
-                console.error("Error controlling humidifier:", error);
-                alert("Error communicating with the server.");
-            }
-        }
-
-        // Periodically fetch data every 5 seconds
-        setInterval(fetchEnvironmentData, 5000);
-
-        // Fetch data immediately on page load
-        fetchEnvironmentData();
-    </script>
+    socket.on('warning', (data) => {
+      warningElement.textContent = data.message;
+      warningElement.style.display = 'block';
+    });
+  </script>
 </body>
 </html>

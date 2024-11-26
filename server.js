@@ -7,7 +7,6 @@ app.use((req, res, next) => {
     next();
 });
 
-
 const express = require("express");
 const axios = require("axios");
 const bodyParser = require("body-parser");
@@ -27,7 +26,10 @@ app.use(bodyParser.json());
 // Particle Device Info (from environment variables)
 const PARTICLE_DEVICE_ID = process.env.PARTICLE_DEVICE_ID;
 const PARTICLE_ACCESS_TOKEN = process.env.PARTICLE_ACCESS_TOKEN;
+
+// Event Names
 const PARTICLE_EVENT_NAME = "environmentData";
+const PARTICLE_WARNING_EVENT = "temperatureWarning";
 
 // Create HTTP Server for Socket.IO
 const server = http.createServer(app);
@@ -37,10 +39,11 @@ const io = new Server(server, { cors: { origin: "*" } });
 let latestEnvironmentData = {
   temperature: null,
   humidity: null,
+  warning: false,
 };
 
 // Listen to Particle Event Stream
-const PARTICLE_EVENT_STREAM_URL = `https://api.particle.io/v1/devices/events/${PARTICLE_EVENT_NAME}?access_token=${PARTICLE_ACCESS_TOKEN}`;
+const PARTICLE_EVENT_STREAM_URL = `https://api.particle.io/v1/devices/events/?access_token=${PARTICLE_ACCESS_TOKEN}`;
 
 axios
   .get(PARTICLE_EVENT_STREAM_URL, { responseType: "stream" })
@@ -50,36 +53,28 @@ axios
     response.data.on("data", (chunk) => {
       const eventData = chunk.toString().trim();
 
-      // Debug log to see the raw data
-      console.log("Raw Event Data:", eventData);
-
       if (eventData.startsWith("data")) {
         try {
-          // Parse the raw "data" string
           const payload = JSON.parse(eventData.replace(/^data: /, ""));
-          console.log("Payload Data:", payload);
-
-          // Parse the "data" field within the payload
+          const eventName = payload.event;
           const parsedData = JSON.parse(payload.data);
-          console.log("Parsed Event Data:", parsedData);
 
-          // Ensure temperature and humidity exist in the payload
-          if (parsedData.temperature !== undefined && parsedData.humidity !== undefined) {
-            // Update latest environment data
-            latestEnvironmentData = {
-              temperature: parsedData.temperature,
-              humidity: parsedData.humidity,
-            };
-            console.log("Updated Environment Data:", latestEnvironmentData);
-
-            // Broadcast the data to all clients via Socket.IO
+          if (eventName === PARTICLE_EVENT_NAME) {
+            // Update environmental data
+            latestEnvironmentData.temperature = parsedData.temperature;
+            latestEnvironmentData.humidity = parsedData.humidity;
             io.emit("update", {
               temperature: parsedData.temperature,
               humidity: parsedData.humidity,
               timestamp: new Date().toLocaleTimeString(),
             });
-          } else {
-            console.error("Invalid data structure:", parsedData);
+          } else if (eventName === PARTICLE_WARNING_EVENT) {
+            // Handle temperature warning
+            latestEnvironmentData.warning = true;
+            io.emit("warning", {
+              message: `Warning! Temperature is at ${parsedData}°F`,
+              timestamp: new Date().toLocaleTimeString(),
+            });
           }
         } catch (error) {
           console.error("Error parsing event data:", error);
