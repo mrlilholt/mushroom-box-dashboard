@@ -34,9 +34,18 @@
     </div>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            const socket = io("https://mushroom-box-dashboard.onrender.com");
-            
-            const tempChartCtx = document.getElementById("tempChart").getContext("2d");
+            console.log("DOM fully loaded");
+
+            // Debugging the tempChart canvas element
+            const tempChartElement = document.getElementById("tempChart");
+            console.log("tempChart element:", tempChartElement);
+
+            if (!tempChartElement) {
+                console.error("Canvas element with id 'tempChart' is missing!");
+                return; // Stop execution if canvas is missing
+            }
+
+            const tempChartCtx = tempChartElement.getContext("2d");
             const tempChart = new Chart(tempChartCtx, {
                 type: "line",
                 data: {
@@ -53,6 +62,8 @@
                 },
             });
 
+            const socket = io("https://mushroom-box-dashboard.onrender.com");
+
             socket.on("connect", () => {
                 console.log("Connected to backend WebSocket");
             });
@@ -60,12 +71,18 @@
             socket.on("update", (data) => {
                 console.log("Received update:", data);
 
-                document.getElementById("current-temp").textContent = data.temperature.toFixed(2);
-                document.getElementById("current-humidity").textContent = data.humidity.toFixed(2);
+                // Update current temperature and humidity
+                const tempElement = document.getElementById("current-temp");
+                const humidityElement = document.getElementById("current-humidity");
 
+                if (tempElement) tempElement.textContent = data.temperature.toFixed(2);
+                if (humidityElement) humidityElement.textContent = data.humidity.toFixed(2);
+
+                // Update chart data
                 tempChart.data.labels.push(data.timestamp);
                 tempChart.data.datasets[0].data.push(data.temperature);
 
+                // Limit chart to the last 20 points
                 if (tempChart.data.labels.length > 20) {
                     tempChart.data.labels.shift();
                     tempChart.data.datasets[0].data.shift();
